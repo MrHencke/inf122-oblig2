@@ -16,7 +16,7 @@ gameLoop [] nm = do
   clr
   cmd <- promptLine "Start a new game with: b <nbOfRings> or quit with: q"
   case words cmd of
-    ["b", n, _] -> do
+    ["b", n] -> do
       let newState = initialState (read n)
       gameLoop newState nm
     _ -> do
@@ -60,7 +60,7 @@ move board 2 3 = "Valid move"
 move board 2 1 = "Valid move"
 move board 3 1 = "Valid move"
 move board 3 2 = "Valid move"
-move board x y = "Input a valid command dog"
+move _ _ _ = "Your move is invalid"
 
 writeRows :: Int -> Int -> Int -> IO ()
 writeRows i n mh
@@ -143,17 +143,17 @@ drawTowers [t1, t2, t3] = do
 drawTowers _ = return ()
 
 writeRowsList :: Int -> [Int] -> Int -> IO ()
+writeRowsList i [] mh
+  | mh == 0 = return ()
+  | otherwise = do
+    threadDelay 100000
+    writeBars i mh --Write "|"
+    writeRowsList i [] (mh - 1)
 writeRowsList i n mh
   | mh == 0 = return ()
-  | null n =
-    do
-      threadDelay 100000
-      writeBars i mh --Write "|"
-      writeRowsList i n (mh - 1)
-  | otherwise =
-    do
-      writeRow i (head n) mh --Write "#"
-      writeRowsList (i + 1) (tail n) (mh - 1)
+  | otherwise = do
+    writeRow i (head n) mh --Write "#"
+    writeRowsList (i + 1) (tail n) (mh - 1)
 
 drawMoves :: Int -> IO ()
 drawMoves nm = putStrLn ("Number of moves: " ++ show nm)
