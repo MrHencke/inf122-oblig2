@@ -122,13 +122,11 @@ help board nm = do
   putStrLn "q: This command quits the game, losing all state"
   putStrLn "<f> <t>: This command moves a ring from pole f to pole t, if the move is legal"
   putStrLn "z <n>: Regrets n moves\n"
-  _ <- promptLine "Press any key to return to the game"
+  _ <- promptLine "Enter any key to return to the game"
   gameLoop board nm
 
 initialState :: (Num a, Enum a) => a -> [[a]]
 initialState x = [[0 .. x], [], []]
-
-drawBoard board = 1
 
 drawTowers :: Board -> IO ()
 drawTowers [t1, t2, t3] = do
