@@ -16,7 +16,7 @@ gameLoop = do
   -- write out moves
   cmd <- getLine
   case words cmd of
-    ["b", n] -> putStrLn "You're gaming now brother"
+    ["b", n] -> trekanter (read n) 0 0
     ["z", n] -> putStrLn "Aborting that move dog"
     ["help"] -> help
     ["h"] -> putStrLn "Yet to be implemented, probably wont be either"
@@ -101,14 +101,13 @@ drawBoard board = 1
 drawTowers :: [Int] -> [Int] -> [Int] -> IO ()
 drawTowers t1 t2 t3 = do
   clr
-
--- let mh = maximum (t1 ++ t2 ++ t3)
---  helper 0 t1 mh
---  helper (4 + 2 * t1) t2 mh
---  helper (8 + 2 * (t1 + t2)) t3 mh
---  goto 0 (mh + 2) --return to lines under pyramids
---where
---  helper i = writeRowsList (i + 1)
+  let mh = maximum (t1 ++ t2 ++ t3)
+  --  helper 0 t1 mh
+  --  helper (4 + 2 * t1) t2 mh
+  --  helper (8 + 2 * (t1 + t2)) t3 mh
+  goto 0 (mh + 2) --return to lines under pyramids
+  --where
+  --  helper i = writeRowsList (i + 1)
 
 writeRowsList i n mh
   | mh == 0 = return ()
