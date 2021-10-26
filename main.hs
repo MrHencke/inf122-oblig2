@@ -1,6 +1,7 @@
 import Control.Concurrent (threadDelay)
 
 -- TODO  Stolpene skal hele tiden stå i ro på skjermen og kommandoer skrives alltid samme sted på skjermen.
+
 type Board = [[Int]]
 
 type State = [Board]
@@ -61,12 +62,14 @@ gameLoop board state nm = do
       let newBoard = initialBoard (read n)
       gameLoop newBoard (newBoard : state) nm
     ["z", n] ->
+      --unfuck this method dog
       if read n > nm
         then do
           putStrLn "You cant go back further than your moves"
+          putStrLn "Taking you back to the starting position"
           putStr "Returning"
           countdown 3
-          gameLoop board state nm
+          gameLoop (state !! nm) [] (nm - nm)
         else do
           putStrLn ("Aborting that move by: " ++ n ++ " moves dog")
           let num = read n
@@ -80,14 +83,6 @@ gameLoop board state nm = do
       countdown 3
       gameLoop board state nm
     ["q"] -> return ()
-    ["board"] -> do
-      print board
-      countdown 3
-      gameLoop board state nm
-    ["state"] -> do
-      print state
-      countdown 3
-      gameLoop board state nm
     [f, t] ->
       if legalMove board (read f) (read t)
         then do
@@ -207,7 +202,6 @@ titlecard =
     putStrLn "███████║█████╗░░██╔██╗██║██║░░╚═╝█████═╝░█████╗░░╚█████╗░  ███████║███████║██╔██╗██║██║░░██║██║"
     putStrLn "██╔══██║██╔══╝░░██║╚████║██║░░██╗██╔═██╗░██╔══╝░░░╚═══██╗  ██╔══██║██╔══██║██║╚████║██║░░██║██║"
     putStrLn "██║░░██║███████╗██║░╚███║╚█████╔╝██║░╚██╗███████╗██████╔╝  ██║░░██║██║░░██║██║░╚███║╚█████╔╝██║"
-    putStrLn "╚═╝░░╚═╝╚══════╝╚═╝░░╚══╝░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░  ╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚══╝░╚════╝░╚═╝"
-    putStrLn ""
+    putStrLn "╚═╝░░╚═╝╚══════╝╚═╝░░╚══╝░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░  ╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚══╝░╚════╝░╚═╝\n"
 
---hanoiSolver board = True
+hanoiSolver board akk = True
