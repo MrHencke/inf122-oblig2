@@ -9,10 +9,11 @@ main :: IO ()
 main =
   do
     clr
+    titlecard
     putStrLn "Hello and welcome to Hencke's Hanoi Simulator 3000"
     putStrLn "To list all available commands, use the: \"help\" command"
-    putStr "Starting the game"
-    countdown 5
+    putStr "Starting"
+    countdown 7
     gameLoop [] [] 0
 
 gameLoop :: Board -> State -> Int -> IO ()
@@ -53,6 +54,7 @@ gameLoop [[], [], xs] _ nm = do
 gameLoop board state nm = do
   drawTowers board
   drawMoves nm
+  putStr "\n> "
   cmd <- getLine
   case words cmd of
     ["b", n] -> do
@@ -70,7 +72,9 @@ gameLoop board state nm = do
           let num = read n
           countdown 3
           gameLoop (state !! num) (drop num state) (nm - num)
-    ["help"] -> help board state nm
+    ["help"] -> do
+      help
+      gameLoop board state nm
     ["h"] -> do
       putStrLn "Yet to be implemented, dont hold your breath"
       countdown 3
@@ -121,15 +125,15 @@ writeBars pivot height = do
   goto pivot height
   putStrLn "|"
 
-help :: Board -> State -> Int -> IO ()
-help board state nm = do
+help :: IO ()
+help = do
   putStrLn "\nThere are 4 commands:"
   putStrLn "b <number of rings>: This commands starts a new game with a given number of rings"
   putStrLn "q: This command quits the game, losing all state"
   putStrLn "<f> <t>: This command moves a ring from pole f to pole t, if the move is legal"
   putStrLn "z <n>: Regrets n moves\n"
   _ <- promptLine "Enter any key to return to the game"
-  gameLoop board state nm
+  return ()
 
 initialBoard :: (Num a, Enum a) => a -> [[a]]
 initialBoard x = [[1 .. x], [], []]
@@ -147,10 +151,11 @@ drawTowers _ = return ()
 writeRows :: Int -> [Int] -> Int -> IO ()
 writeRows _ _ 0 = return ()
 writeRows pivot [] mh = do
-  threadDelay 30000
+  threadDelay 20000
   writeBars pivot mh --Write "|"
   writeRows pivot [] (mh - 1)
 writeRows pivot n mh = do
+  threadDelay 20000
   let el = head n
   writeRow (pivot - el) el mh --Write "#"
   writeRows pivot (tail n) (mh - 1)
@@ -192,6 +197,17 @@ goto x y = putStr ("\ESC[" ++ show y ++ ";" ++ show x ++ "H")
 promptLine :: String -> IO String
 promptLine prompt = do
   putStrLn prompt
+  putStr "> "
   getLine
+
+titlecard =
+  do
+    putStrLn "██╗░░██╗███████╗███╗░░██╗░█████╗░██╗░░██╗███████╗░██████╗  ██╗░░██╗░█████╗░███╗░░██╗░█████╗░██╗"
+    putStrLn "██║░░██║██╔════╝████╗░██║██╔══██╗██║░██╔╝██╔════╝██╔════╝  ██║░░██║██╔══██╗████╗░██║██╔══██╗██║"
+    putStrLn "███████║█████╗░░██╔██╗██║██║░░╚═╝█████═╝░█████╗░░╚█████╗░  ███████║███████║██╔██╗██║██║░░██║██║"
+    putStrLn "██╔══██║██╔══╝░░██║╚████║██║░░██╗██╔═██╗░██╔══╝░░░╚═══██╗  ██╔══██║██╔══██║██║╚████║██║░░██║██║"
+    putStrLn "██║░░██║███████╗██║░╚███║╚█████╔╝██║░╚██╗███████╗██████╔╝  ██║░░██║██║░░██║██║░╚███║╚█████╔╝██║"
+    putStrLn "╚═╝░░╚═╝╚══════╝╚═╝░░╚══╝░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░  ╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚══╝░╚════╝░╚═╝"
+    putStrLn ""
 
 --hanoiSolver board = True
