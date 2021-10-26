@@ -23,9 +23,12 @@ gameLoop [] state nm = do
     ["b", n] -> do
       let num = read n :: Int
       let newBoard = initialBoard num
-      putStrLn ("A game with " ++ n ++ " rings will at the very least take " ++ show (2 ^ num - 1) ++ " moves.")
-      putStr "Press any key to continue..." >> getLine
+      let optimalSol = 2 ^ num - 1 :: Int
+      putStrLn ("A game with " ++ n ++ " rings will at the very least take " ++ show optimalSol ++ " moves.")
+      putStr "Good luck"
+      countdown 5
       gameLoop newBoard (newBoard : state) nm
+    ["q"] -> return ()
     _ -> do
       putStrLn "You have to initialize the game to input other commands"
       putStrLn "Start a new game with: b <nbOfRings>"
@@ -35,14 +38,19 @@ gameLoop [] state nm = do
 gameLoop [[], [], xs] _ nm = do
   clr
   putStrLn "You won, congratulations!"
-  putStrLn ("This game contained " ++ show (last xs) ++ " rings")
-  putStrLn ("You used " ++ show nm ++ " moves")
+  let rings = last xs
+  let optimalSol = 2 ^ rings - 1 :: Int
+  putStrLn ("This game contained " ++ show rings ++ " rings")
+  let message =
+        if optimalSol == nm
+          then "You used " ++ show nm ++ " moves, just like the optimal solution. Good job!"
+          else "You used " ++ show nm ++ " moves, while the optimal solution uses " ++ show optimalSol ++ ". Better luck next time!"
+  putStrLn message
   let time = 10
   putStrLn ("Bringing you back to the main menu in " ++ show time ++ " seconds")
   countdown time
   gameLoop [] [] 0
 gameLoop board state nm = do
-  clr
   drawTowers board
   drawMoves nm
   cmd <- getLine
@@ -104,13 +112,13 @@ move [a, b, c : cs] 3 2 = [a, c : b, cs]
 move board _ _ = board
 
 writeRow :: Int -> Int -> Int -> IO ()
-writeRow i n mh = do
-  goto i mh
+writeRow i n height = do
+  goto i height
   putStrLn (concat (replicate n " #"))
 
 writeBars :: Int -> Int -> IO ()
-writeBars i mh = do
-  goto i mh
+writeBars pivot height = do
+  goto pivot height
   putStrLn "|"
 
 help :: Board -> State -> Int -> IO ()
@@ -130,23 +138,22 @@ drawTowers :: Board -> IO ()
 drawTowers [t1, t2, t3] = do
   clr
   let mh = maximum (t1 ++ t2 ++ t3)
-  helper (mh `div` 2) (reverse t1) mh 0
-  helper (4 * mh) (reverse t2) mh 0
-  helper (6 * mh) (reverse t3) mh 0
+  writeRows (2 * mh) (reverse t1) mh
+  writeRows (4 * mh) (reverse t2) mh
+  writeRows (6 * mh) (reverse t3) mh
   goto 0 (mh + 2)
-  where
-    helper i = writeRowsList (i + 1)
 drawTowers _ = return ()
 
-writeRowsList :: Int -> [Int] -> Int -> Int -> IO ()
-writeRowsList _ _ 0 _ = return ()
-writeRowsList i [] mh prev = do
+writeRows :: Int -> [Int] -> Int -> IO ()
+writeRows _ _ 0 = return ()
+writeRows pivot [] mh = do
   threadDelay 30000
-  writeBars (i + (2 * prev `div` 2) - 1) mh --Write "|"
-  writeRowsList i [] (mh - 1) prev
-writeRowsList i n mh _ = do
-  writeRow i (head n) mh --Write "#"
-  writeRowsList (i + 1) (tail n) (mh - 1) (head n)
+  writeBars pivot mh --Write "|"
+  writeRows pivot [] (mh - 1)
+writeRows pivot n mh = do
+  let el = head n
+  writeRow (pivot - el) el mh --Write "#"
+  writeRows pivot (tail n) (mh - 1)
 
 drawMoves :: Int -> IO ()
 drawMoves nm = putStrLn ("Number of moves: " ++ show nm)
