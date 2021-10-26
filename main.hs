@@ -62,7 +62,6 @@ gameLoop board state nm = do
       let newBoard = initialBoard (read n)
       gameLoop newBoard (newBoard : state) nm
     ["z", n] ->
-      --unfuck this method dog
       if read n > nm
         then do
           putStrLn "You cant go back further than your moves"
