@@ -1,35 +1,19 @@
 import Control.Concurrent (threadDelay)
-
--- TODO  Stolpene skal hele tiden stå i ro på skjermen og kommandoer skrives alltid samme sted på skjermen.
+import GHC.Unicode (isDigit)
 
 type Board = [[Int]]
 
 type State = [Board]
 
 main :: IO ()
-main =
-  do
-    clr
-    titlecard
-    putStrLn "Hello and welcome to Hencke's Hanoi Simulator 3000"
-    putStrLn "To list all available commands, use the: \"help\" command"
-    putStr "Starting"
-    countdown 7
-    gameLoop [] [] 0
+main = startGame
 
 gameLoop :: Board -> State -> Int -> IO ()
 gameLoop [] state nm = do
   clr
   cmd <- promptLine "Start a new game with: b <nbOfRings> or quit with: q"
   case words cmd of
-    ["b", n] -> do
-      let num = read n :: Int
-      let newBoard = initialBoard num
-      let optimalSol = 2 ^ num - 1 :: Int
-      putStrLn ("A game with " ++ n ++ " rings will at the very least take " ++ show optimalSol ++ " moves.")
-      putStr "Good luck"
-      countdown 5
-      gameLoop newBoard (newBoard : state) nm
+    ["b", n] -> newGame [] n state nm
     ["q"] -> return ()
     _ -> do
       putStrLn "You have to initialize the game to input other commands"
@@ -37,43 +21,31 @@ gameLoop [] state nm = do
       putStr "Returning"
       countdown 3
       gameLoop [] state nm
-gameLoop [[], [], xs] _ nm = do
-  clr
-  putStrLn "You won, congratulations!"
-  let rings = last xs
-  let optimalSol = 2 ^ rings - 1 :: Int
-  putStrLn ("This game contained " ++ show rings ++ " rings")
-  let message =
-        if optimalSol == nm
-          then "You used " ++ show nm ++ " moves, just like the optimal solution. Good job!"
-          else "You used " ++ show nm ++ " moves, while the optimal solution uses " ++ show optimalSol ++ ". Better luck next time!"
-  putStrLn message
-  let time = 10
-  putStrLn ("Bringing you back to the main menu in " ++ show time ++ " seconds")
-  countdown time
-  gameLoop [] [] 0
+gameLoop [[], [], xs] _ nm = winState xs nm
 gameLoop board state nm = do
   drawTowers board
   drawMoves nm
-  putStr "\n> "
+  putStr "\n> " --gives the user a more useful prompt
   cmd <- getLine
   case words cmd of
-    ["b", n] -> do
-      let newBoard = initialBoard (read n)
-      gameLoop newBoard (newBoard : state) nm
+    ["b", n] -> newGame board n state nm
     ["z", n] ->
-      if read n > nm
-        then do
-          putStrLn "You cant go back further than your moves"
-          putStrLn "Taking you back to the starting position"
-          putStr "Returning"
-          countdown 3
-          gameLoop (state !! nm) [] (nm - nm)
-        else do
-          putStrLn ("Aborting that move by: " ++ n ++ " moves dog")
-          let num = read n
-          countdown 3
-          gameLoop (state !! num) (drop num state) (nm - num)
+      if checkDigit n
+        then
+          if read n > nm
+            then do
+              putStrLn "You can't go back further than your moves"
+              putStrLn "Taking you back to the starting position"
+              putStr "Returning"
+              countdown 3
+              let startBoard = state !! nm
+              gameLoop startBoard [startBoard] (nm - nm)
+            else do
+              putStrLn ("Regretting: " ++ n ++ " moves")
+              let num = read n
+              countdown 3
+              gameLoop (state !! num) (drop num state) (nm - num)
+        else numErr board state nm
     ["help"] -> do
       help
       gameLoop board state nm
@@ -83,18 +55,21 @@ gameLoop board state nm = do
       gameLoop board state nm
     ["q"] -> return ()
     [f, t] ->
-      if legalMove board (read f) (read t)
+      if checkDigit f && checkDigit t
         then do
-          let newBoard = move board (read f) (read t)
-          gameLoop newBoard (newBoard : state) (nm + 1)
-        else do
-          putStrLn "That move is illegal"
-          putStr "Returning"
-          countdown 3
-          gameLoop board state nm
+          if legalMove board (read f) (read t)
+            then do
+              let newBoard = move board (read f) (read t)
+              gameLoop newBoard (newBoard : state) (nm + 1)
+            else do
+              putStrLn "That move is illegal"
+              putStr "Returning"
+              countdown 3
+              gameLoop board state nm
+        else numErr board state nm
     _ -> do
-      putStrLn "Yo, input a proper command dog"
-      putStr "Returning"
+      putStrLn "This is not a valid command"
+      putStr "Returning to game"
       countdown 3
       gameLoop board state nm
 
@@ -129,16 +104,16 @@ help = do
   _ <- promptLine "Enter any key to return to the game"
   return ()
 
-initialBoard :: (Num a, Enum a) => a -> [[a]]
-initialBoard x = [[1 .. x], [], []]
+initializeBoard :: (Num a, Enum a) => a -> [[a]]
+initializeBoard x = [[1 .. x], [], []]
 
 drawTowers :: Board -> IO ()
 drawTowers [t1, t2, t3] = do
   clr
-  let mh = maximum (t1 ++ t2 ++ t3)
-  writeRows (2 * mh) (reverse t1) mh
-  writeRows (4 * mh) (reverse t2) mh
-  writeRows (6 * mh) (reverse t3) mh
+  let mh = maximum (t1 ++ t2 ++ t3) + 1
+  writeRows (2 + mh) (reverse t1) mh
+  writeRows (3 * (2 + mh)) (reverse t2) mh
+  writeRows (5 * (2 + mh)) (reverse t3) mh
   goto 0 (mh + 2)
 drawTowers _ = return ()
 
@@ -178,6 +153,53 @@ legalTowers x y = x /= y && legalTower x && legalTower y
 legalTower :: Int -> Bool
 legalTower x = 0 < x && x < 4
 
+------------- Game loop functions that are used more than once, or are large -------------
+startGame :: IO ()
+startGame = do
+  clr
+  titlecard
+  putStrLn "Hello and welcome to Hencke's Hanoi Simulator 3000"
+  putStrLn "To list all available commands, use the: \"help\" command"
+  putStr "Starting"
+  countdown 7
+  gameLoop [] [] 0
+
+newGame :: Board -> String -> State -> Int -> IO ()
+newGame board n state nm =
+  if checkDigit n
+    then do
+      let num = read n :: Int
+      let newBoard = initializeBoard num
+      let optimalSol = 2 ^ num - 1 :: Int
+      putStrLn ("A game with " ++ n ++ " rings will at the very least take " ++ show optimalSol ++ " moves.")
+      putStr "Good luck"
+      countdown 5
+      gameLoop newBoard (newBoard : state) nm
+    else numErr board state nm
+
+numErr :: Board -> State -> Int -> IO ()
+numErr board state nm = do
+  putStrLn "Please input a valid number"
+  putStr "Returning"
+  countdown 3
+  gameLoop board state nm
+
+winState xs nm = do
+  clr
+  putStrLn "You won, congratulations!"
+  let rings = last xs
+  let optimalSol = 2 ^ rings - 1 :: Int
+  putStrLn ("This game contained " ++ show rings ++ " rings")
+  let message =
+        if optimalSol == nm
+          then "You used " ++ show nm ++ " moves, just like the optimal solution. Good job!"
+          else "You used " ++ show nm ++ " moves, while the optimal solution uses " ++ show optimalSol ++ ". Better luck next time!"
+  putStrLn message
+  let time = 10
+  putStrLn ("Bringing you back to the main menu in " ++ show time ++ " seconds")
+  countdown time
+  gameLoop [] [] 0
+
 ------------- Utility functions -------------
 
 clr :: IO ()
@@ -194,13 +216,20 @@ promptLine prompt = do
   putStr "> "
   getLine
 
+checkDigit :: String -> Bool
+checkDigit [] = False
+checkDigit [x] = isDigit x
+checkDigit (x : xs) = checkDigit [x] && checkDigit xs
+
+titlecard :: IO ()
 titlecard =
   do
-    putStrLn "██╗░░██╗███████╗███╗░░██╗░█████╗░██╗░░██╗███████╗░██████╗  ██╗░░██╗░█████╗░███╗░░██╗░█████╗░██╗"
-    putStrLn "██║░░██║██╔════╝████╗░██║██╔══██╗██║░██╔╝██╔════╝██╔════╝  ██║░░██║██╔══██╗████╗░██║██╔══██╗██║"
-    putStrLn "███████║█████╗░░██╔██╗██║██║░░╚═╝█████═╝░█████╗░░╚█████╗░  ███████║███████║██╔██╗██║██║░░██║██║"
-    putStrLn "██╔══██║██╔══╝░░██║╚████║██║░░██╗██╔═██╗░██╔══╝░░░╚═══██╗  ██╔══██║██╔══██║██║╚████║██║░░██║██║"
-    putStrLn "██║░░██║███████╗██║░╚███║╚█████╔╝██║░╚██╗███████╗██████╔╝  ██║░░██║██║░░██║██║░╚███║╚█████╔╝██║"
-    putStrLn "╚═╝░░╚═╝╚══════╝╚═╝░░╚══╝░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░  ╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚══╝░╚════╝░╚═╝\n"
+    putStrLn "██╗░░██╗███████╗███╗░░██╗░█████╗░██╗░░██╗███████╗░██████╗   ██╗░░██╗░█████╗░███╗░░██╗░█████╗░██╗"
+    putStrLn "██║░░██║██╔════╝████╗░██║██╔══██╗██║░██╔╝██╔════╝██╔════╝   ██║░░██║██╔══██╗████╗░██║██╔══██╗██║"
+    putStrLn "███████║█████╗░░██╔██╗██║██║░░╚═╝█████═╝░█████╗░░╚█████╗░   ███████║███████║██╔██╗██║██║░░██║██║"
+    putStrLn "██╔══██║██╔══╝░░██║╚████║██║░░██╗██╔═██╗░██╔══╝░░░╚═══██╗   ██╔══██║██╔══██║██║╚████║██║░░██║██║"
+    putStrLn "██║░░██║███████╗██║░╚███║╚█████╔╝██║░╚██╗███████╗██████╔╝   ██║░░██║██║░░██║██║░╚███║╚█████╔╝██║"
+    putStrLn "╚═╝░░╚═╝╚══════╝╚═╝░░╚══╝░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░   ╚═╝░░╚═╝╚═╝░░╚═╝╚═╝░░╚══╝░╚════╝░╚═╝\n"
 
+hanoiSolver :: p1 -> p2 -> Bool
 hanoiSolver board akk = True
