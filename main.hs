@@ -129,8 +129,6 @@ legalTowers x y = x /= y && legalTower x && legalTower y
 legalTower :: Int -> Bool
 legalTower x = 0 < x && x < 4
 
-------------- Game loop functions that are used more than once, or are large -------------
-
 newGame :: Board -> String -> State -> Int -> IO ()
 newGame board n state nm =
   if checkDigit n
@@ -184,12 +182,25 @@ checkDigit = all isDigit
 titlecard :: IO ()
 titlecard =
   putStrLn
-    "████████╗ █████╗ ██╗       ██╗███████╗██████╗  ██████╗    █████╗ ███████╗   ██╗  ██╗ █████╗ ███╗  ██╗ █████╗ ██╗\n \
-    \╚══██╔══╝██╔══██╗██║  ██╗  ██║██╔════╝██╔══██╗██╔════╝   ██╔══██╗██╔════╝   ██║  ██║██╔══██╗████╗ ██║██╔══██╗██║\n \
-    \   ██║   ██║  ██║╚██╗████╗██╔╝█████╗  ██████╔╝╚█████╗    ██║  ██║█████╗     ███████║███████║██╔██╗██║██║  ██║██║\n \
-    \   ██║   ██║  ██║ ████╔═████║ ██╔══╝  ██╔══██╗ ╚═══██╗   ██║  ██║██╔══╝     ██╔══██║██╔══██║██║╚████║██║  ██║██║\n \
-    \   ██║   ╚█████╔╝ ╚██╔╝ ╚██╔╝ ███████╗██║  ██║██████╔╝   ╚█████╔╝██║        ██║  ██║██║  ██║██║ ╚███║╚█████╔╝██║\n \
-    \   ╚═╝    ╚════╝   ╚═╝   ╚═╝  ╚══════╝╚═╝  ╚═╝╚═════╝     ╚════╝ ╚═╝        ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚══╝ ╚════╝ ╚═╝\n"
+    " ████████╗ █████╗ ██╗       ██╗███████╗██████╗  ██████╗    █████╗ ███████╗  ██╗  ██╗ █████╗ ███╗  ██╗ █████╗ ██╗\n \
+    \╚══██╔══╝██╔══██╗██║  ██╗  ██║██╔════╝██╔══██╗██╔════╝   ██╔══██╗██╔════╝  ██║  ██║██╔══██╗████╗ ██║██╔══██╗██║\n \
+    \   ██║   ██║  ██║╚██╗████╗██╔╝█████╗  ██████╔╝╚█████╗    ██║  ██║█████╗    ███████║███████║██╔██╗██║██║  ██║██║\n \
+    \   ██║   ██║  ██║ ████╔═████║ ██╔══╝  ██╔══██╗ ╚═══██╗   ██║  ██║██╔══╝    ██╔══██║██╔══██║██║╚████║██║  ██║██║\n \
+    \   ██║   ╚█████╔╝ ╚██╔╝ ╚██╔╝ ███████╗██║  ██║██████╔╝   ╚█████╔╝██║       ██║  ██║██║  ██║██║ ╚███║╚█████╔╝██║\n \
+    \   ╚═╝    ╚════╝   ╚═╝   ╚═╝  ╚══════╝╚═╝  ╚═╝╚═════╝     ╚════╝ ╚═╝       ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚══╝ ╚════╝ ╚═╝\n"
 
-hanoiSolver :: p1 -> p2 -> Bool
-hanoiSolver board akk = True
+testHanoi :: Board
+testHanoi = [[1, 2, 3], [], []]
+
+n = 3
+
+hS :: Board -> Int -> State -> State
+hS board 0 akk = akk -- base case
+hS board n akk
+  | n `elem` c = if (n - 1) `elem` b then hS (move board 2 3) (n - 1) ((move board 2 3) : akk) else hS (move board 1 3) (n - 1) ((move board 1 3) : akk) --rek case 1
+  | n `elem` b = if (n - 1) `elem` c then hS (move board 3 1) (n - 1) ((move board 3 1) : akk) else hS board n akk -- flytt (n-1) til a, flytt n til c, flytt (n-1) til c
+  | n `elem` a = if (n - 1) `elem` c then hS (move board 3 2) (n - 1) ((move board 3 2) : akk) else hS board n akk -- flytt (n-1) til b, flytt n til c, flytt (n-1) til c
+  where
+    [a, b, c] = board
+
+--hS testHanoi 3 []
