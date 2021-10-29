@@ -63,8 +63,7 @@ gameLoop board state nm msg = do
 
 ---------------Hjelpemetoder---------------
 
--- Cant really think of a dynamic way to do this without making spaghetti code
-move :: Board -> Int -> Int -> Board
+move :: Board -> Int -> Int -> Board -- Cant really think of a dynamic way to do this without making spaghetti code
 move [a : as, b, c] 1 2 = [as, a : b, c]
 move [a : as, b, c] 1 3 = [as, b, a : c]
 move [a, b : bs, c] 2 3 = [a, bs, b : c]
@@ -191,8 +190,6 @@ titlecard =
 
 testHanoi :: Board
 testHanoi = [[1, 2, 3], [], []]
-
-n = 3
 
 hS :: Board -> Int -> State -> State
 hS board 0 akk = akk -- base case
