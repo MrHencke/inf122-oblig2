@@ -2,6 +2,8 @@ import GHC.Unicode (isDigit)
 
 type Board = [[Int]]
 
+type MSG = (String, String)
+
 type State = [Board]
 
 main :: IO ()
@@ -199,5 +201,3 @@ hS board n akk
   | n `elem` a = if (n - 1) `elem` c then hS (move board 3 2) (n - 1) ((move board 3 2) : akk) else hS board n akk -- flytt (n-1) til b, flytt n til c, flytt (n-1) til c
   where
     [a, b, c] = board
-
---hS testHanoi 3 []
