@@ -9,7 +9,7 @@ type State = [Board]
 type MSG = (String, String) -- Color code + message
 
 main :: IO ()
-main = gameLoop [] [] 0 ("R", "")
+main = gameLoop [] [] 0 ("", "")
 
 gameLoop :: Board -> State -> Int -> MSG -> IO ()
 gameLoop [] state nm msg = do
@@ -26,8 +26,9 @@ gameLoop [] state nm msg = do
     ["help"] -> do
       clr
       help
-      gameLoop [] state nm ("R", "")
+      gameLoop [] state nm ("", "")
     ["q"] -> return ()
+    ["q", _] -> gameLoop [] state nm ("R", "This command only contains a single letter, \"q\", try again.")
     _ -> gameLoop [] state nm ("R", "You have to initialize the game to input other commands than b and q")
 gameLoop [[], [], xs] _ nm _ = do
   -- Game loop when a player has won, they may return to the initial loop from here
@@ -46,7 +47,7 @@ gameLoop board state nm msg = do
     ["b", n] -> newGame board n state nm
     ["z"] -> gameLoop board state nm ("R", "You have to provide a number for this command")
     ["z", n] ->
-      if checkNumber n
+      if isNumber n
         then do
           let num = read n :: Int
           if num > nm
@@ -57,16 +58,17 @@ gameLoop board state nm msg = do
     ["help"] -> do
       clr
       help
-      gameLoop board state nm ("R", "")
-    ["h"] -> gameLoop board state nm ("Y", "This feature is not implemented")
+      gameLoop board state nm ("", "")
     ["q"] -> return ()
+    ["q", _] -> gameLoop board state nm ("R", "This command only contains a single letter, \"q\", try again.")
+    ["h"] -> gameLoop board state nm ("R", "This command only contains a single letter, \"q\", try again.")
     [f, t] ->
-      if checkNumber f && checkNumber t
+      if isNumber f && isNumber t
         then do
           if legalMove board (read f :: Int) (read t :: Int)
             then do
               let newBoard = move board (read f :: Int) (read t :: Int)
-              gameLoop newBoard (newBoard : state) (nm + 1) ("R", "")
+              gameLoop newBoard (newBoard : state) (nm + 1) ("", "")
             else gameLoop board state nm ("R", "That move is illegal")
         else gameLoop board state nm ("R", "Please input a valid number")
     xs -> gameLoop board state nm ("R", "\"" ++ unwords xs ++ "\"" ++ " is not a valid command, check available commands with \"help\"")
@@ -80,18 +82,9 @@ move [a, b : bs, c] 2 3 = [a, bs, b : c]
 move [a, b : bs, c] 2 1 = [b : a, bs, c]
 move [a, b, c : cs] 3 1 = [c : a, b, cs]
 move [a, b, c : cs] 3 2 = [a, c : b, cs]
+move board _ _ = board
 
-help :: IO ()
-help = do
-  putStrLn "There are 4 commands:"
-  putStrLn "b <n>: Starts a new game with n rings"
-  putStrLn "<f> <t>: Moves a ring from pole f to pole t, if the move is legal"
-  putStrLn "z <n>: Regrets n moves"
-  putStrLn "q: Quits the game, losing all state\n"
-  _ <- promptLine "Press enter to return to the game"
-  return ()
-
-initializeBoard :: (Num a, Enum a) => a -> [[a]]
+initializeBoard :: Int -> Board
 initializeBoard x = [[1 .. x], [], []]
 
 drawTowers :: Board -> IO ()
@@ -117,17 +110,6 @@ writeAt str n pivot height = do
   goto pivot height
   putStrLn (concat (replicate n str))
 
-drawMoves :: Int -> IO ()
-drawMoves nm = putStrLn ("Number of moves: " ++ show nm)
-
-drawMessage :: MSG -> IO ()
-drawMessage (color, msg) = if msg == "" then putStr "\n" else putStr ("\ESC[" ++ colorToCode color ++ "m" ++ msg ++ "\ESC[0m\n")
-
-colorToCode :: String -> String
-colorToCode "R" = "31"
-colorToCode "G" = "32"
-colorToCode "Y" = "33"
-
 legalMove :: Board -> Int -> Int -> Bool
 legalMove board x y =
   legalTowers x y
@@ -140,9 +122,33 @@ legalTowers x y = x /= y && legalTower x && legalTower y
 legalTower :: Int -> Bool
 legalTower x = 0 < x && x < 4
 
+colorToCode :: String -> String
+colorToCode "R" = "31"
+colorToCode "G" = "32"
+colorToCode "Y" = "33"
+colorToCode _ = "0"
+
+--------------- Game loop IO Actions ---------------
+help :: IO ()
+help = do
+  putStrLn "There are 4 commands:"
+  putStrLn "b <n>: Starts a new game with n rings"
+  putStrLn "<f> <t>: Moves a ring from pole f to pole t, if the move is legal"
+  putStrLn "z <n>: Regrets n moves"
+  putStrLn "q: Quits the game, losing all state"
+  putStrLn "Remember that all commands are written in lowercase.\n"
+  _ <- promptLine "Press enter to return to the game"
+  return ()
+
+drawMoves :: Int -> IO ()
+drawMoves nm = putStrLn ("Number of moves: " ++ show nm)
+
+drawMessage :: MSG -> IO ()
+drawMessage (color, msg) = if msg == "" then putStr "\n" else putStr ("\ESC[" ++ colorToCode color ++ "m" ++ msg ++ "\ESC[0m\n")
+
 newGame :: Board -> String -> State -> Int -> IO ()
 newGame board n state nm =
-  if checkNumber n
+  if isNumber n
     then do
       let num = read n :: Int
       if 0 < num && num <= 12
@@ -168,7 +174,6 @@ winMessage xs nm = do
   return ()
 
 ------------- Utility functions -------------
-
 clr :: IO ()
 clr = putStr "\ESC[2J" >> goto 0 0
 
@@ -179,5 +184,5 @@ promptLine :: String -> IO String
 promptLine [] = putStr "> " >> getLine
 promptLine prompt = putStrLn prompt >> putStr "> " >> getLine
 
-checkNumber :: String -> Bool
-checkNumber = all isDigit
+isNumber :: String -> Bool
+isNumber = all isDigit
