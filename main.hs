@@ -15,19 +15,20 @@ gameLoop :: Board -> State -> Int -> MSG -> IO ()
 gameLoop [] state nm msg = do
   -- Initial game loop, a player can either start a game or quit from here
   clr
-  titlecard
-  putStrLn "To list all available commands, use the: \"help\" command"
+  putStrLn "Welcome to Towers of Hanoi!"
+  putStrLn "List all available commands with: \"help\""
   drawMessage msg
-  putStrLn "Start a new game with: b <nbOfRings> or quit with: q"
+  putStrLn "Start a new game with: b <Number Of Rings> or quit with: q"
   cmd <- promptLine ""
   case words cmd of
+    ["b"] -> gameLoop [] state nm ("R", "You have to provide a number for this command")
     ["b", n] -> newGame [] n state nm
     ["help"] -> do
       clr
       help
       gameLoop [] state nm ("R", "")
     ["q"] -> return ()
-    _ -> gameLoop [] state nm ("R", "You have to initialize the game to input other commands")
+    _ -> gameLoop [] state nm ("R", "You have to initialize the game to input other commands than b and q")
 gameLoop [[], [], xs] _ nm _ = do
   -- Game loop when a player has won, they may return to the initial loop from here
   clr
@@ -41,11 +42,13 @@ gameLoop board state nm msg = do
   drawMessage msg
   cmd <- promptLine ""
   case words cmd of
+    ["b"] -> gameLoop board state nm ("R", "You have to provide a number for this command")
     ["b", n] -> newGame board n state nm
+    ["z"] -> gameLoop board state nm ("R", "You have to provide a number for this command")
     ["z", n] ->
-      if checkDigit n
+      if checkNumber n
         then do
-          let num = read n
+          let num = read n :: Int
           if num > nm
             then gameLoop (state !! nm) [state !! nm] 0 ("Y", "You can't go back further than your moves \nTaking you back to the starting position")
             else do
@@ -55,14 +58,14 @@ gameLoop board state nm msg = do
       clr
       help
       gameLoop board state nm ("R", "")
-    ["h"] -> gameLoop board state nm ("Y", "Yet to be implemented, dont hold your breath")
+    ["h"] -> gameLoop board state nm ("Y", "This feature is not implemented")
     ["q"] -> return ()
     [f, t] ->
-      if checkDigit f && checkDigit t
+      if checkNumber f && checkNumber t
         then do
-          if legalMove board (read f) (read t)
+          if legalMove board (read f :: Int) (read t :: Int)
             then do
-              let newBoard = move board (read f) (read t)
+              let newBoard = move board (read f :: Int) (read t :: Int)
               gameLoop newBoard (newBoard : state) (nm + 1) ("R", "")
             else gameLoop board state nm ("R", "That move is illegal")
         else gameLoop board state nm ("R", "Please input a valid number")
@@ -81,10 +84,9 @@ move [a, b, c : cs] 3 2 = [a, c : b, cs]
 help :: IO ()
 help = do
   putStrLn "There are 4 commands:"
-  putStrLn "b <number of rings>: Starts a new game with a given number of rings"
+  putStrLn "b <n>: Starts a new game with n rings"
   putStrLn "<f> <t>: Moves a ring from pole f to pole t, if the move is legal"
   putStrLn "z <n>: Regrets n moves"
-  putStrLn "h: This command is supposed to give you a hint"
   putStrLn "q: Quits the game, losing all state\n"
   _ <- promptLine "Press enter to return to the game"
   return ()
@@ -140,7 +142,7 @@ legalTower x = 0 < x && x < 4
 
 newGame :: Board -> String -> State -> Int -> IO ()
 newGame board n state nm =
-  if checkDigit n
+  if checkNumber n
     then do
       let num = read n :: Int
       if 0 < num && num <= 12
@@ -157,12 +159,11 @@ winMessage xs nm = do
   let optimalSol = 2 ^ rings - 1 :: Int
   putStrLn ("This game contained " ++ show rings ++ " rings")
   putStrLn
-    ( "You used " ++ show nm
+    ( "You did it in " ++ show nm ++ " moves, "
         ++ if optimalSol == nm
-          then " moves, just like the optimal solution. Good job!"
-          else " moves, while the optimal solution uses " ++ show optimalSol ++ ". Better luck next time!"
+          then "just like the optimal solution. Good job!"
+          else "while the optimal solution uses " ++ show optimalSol ++ ". Better luck next time!"
     )
-
   _ <- promptLine "Press enter to continue to the main menu"
   return ()
 
@@ -178,17 +179,5 @@ promptLine :: String -> IO String
 promptLine [] = putStr "> " >> getLine
 promptLine prompt = putStrLn prompt >> putStr "> " >> getLine
 
-checkDigit :: String -> Bool
-checkDigit = all isDigit
-
-------------- ASCII Art -------------
-
-titlecard :: IO ()
-titlecard =
-  putStrLn
-    "████████╗ █████╗ ██╗       ██╗███████╗██████╗  ██████╗    █████╗ ███████╗  ██╗  ██╗ █████╗ ███╗  ██╗ █████╗ ██╗\n\
-    \╚══██╔══╝██╔══██╗██║  ██╗  ██║██╔════╝██╔══██╗██╔════╝   ██╔══██╗██╔════╝  ██║  ██║██╔══██╗████╗ ██║██╔══██╗██║\n\
-    \   ██║   ██║  ██║╚██╗████╗██╔╝█████╗  ██████╔╝╚█████╗    ██║  ██║█████╗    ███████║███████║██╔██╗██║██║  ██║██║\n\
-    \   ██║   ██║  ██║ ████╔═████║ ██╔══╝  ██╔══██╗ ╚═══██╗   ██║  ██║██╔══╝    ██╔══██║██╔══██║██║╚████║██║  ██║██║\n\
-    \   ██║   ╚█████╔╝ ╚██╔╝ ╚██╔╝ ███████╗██║  ██║██████╔╝   ╚█████╔╝██║       ██║  ██║██║  ██║██║ ╚███║╚█████╔╝██║\n\
-    \   ╚═╝    ╚════╝   ╚═╝   ╚═╝  ╚══════╝╚═╝  ╚═╝╚═════╝     ╚════╝ ╚═╝       ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚══╝ ╚════╝ ╚═╝\n"
+checkNumber :: String -> Bool
+checkNumber = all isDigit
