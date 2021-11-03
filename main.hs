@@ -61,7 +61,7 @@ gameLoop board state nm msg = do
       gameLoop board state nm ("", "")
     ["q"] -> return ()
     ["q", _] -> gameLoop board state nm ("R", "This command only contains a single letter, \"q\", try again.")
-    ["h"] -> gameLoop board state nm ("R", "This command only contains a single letter, \"q\", try again.")
+    ["h"] -> gameLoop board state nm ("R", "This command has not been implemented.")
     [f, t] ->
       if isNumber f && isNumber t
         then do
